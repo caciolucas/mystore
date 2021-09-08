@@ -14,6 +14,7 @@ class CartItemSerializer(ModelSerializer):
     class Meta:
         model = CartItem
         fields = '__all__'
+        depth = 1
 
 
 class UserSerializer(ModelSerializer):
