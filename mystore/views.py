@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.shortcuts import render
 from rest_framework.decorators import action
@@ -24,9 +25,29 @@ class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-    @action(methods=['get', 'post'], detail=True)
+    def create(self, request, *args, **kwargs):
+        request.data['password'] = make_password(request.data['password'])
+        return super().create(request, *args, **kwargs)
+
+    @action(methods=['get', 'post', 'delete'], detail=True)
     def cart(self, request, pk):
-        return Response(CartItemSerializer(CartItem.objects.filter(user=pk), many=True).data)
+        response = ...
+        if request.method == 'GET':
+            response = CartItemSerializer(CartItem.objects.filter(user=pk), many=True).data
+
+        elif request.method == 'POST':
+            cart_item = CartItemSerializer(data=request.data)
+            if cart_item.is_valid():
+                cart_item.save()
+                response = cart_item.data
+            else:
+                response = cart_item.errors
+        
+        elif request.method == 'DELETE':
+            CartItem.objects.filter(user=pk).delete()
+            response = 'Cart items deleted'
+            
+        return Response(response)
 
 class LoginView(ViewSet):
     '''A simple viewset to verify user credentials and if it exists return its information'''
