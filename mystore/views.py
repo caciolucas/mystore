@@ -1,7 +1,8 @@
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from django.shortcuts import render
+
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
 # Create your views here.
@@ -34,20 +35,24 @@ class UserViewSet(ModelViewSet):
         response = ...
         if request.method == 'GET':
             response = CartItemSerializer(CartItem.objects.filter(user=pk), many=True).data
+            status_code = status.HTTP_200_OK
 
         elif request.method == 'POST':
-            cart_item = CartItemSerializer(data=request.data)
-            if cart_item.is_valid():
-                cart_item.save()
-                response = cart_item.data
-            else:
-                response = cart_item.errors
-        
+            cart_item = CartItem(user=get_object_or_404(User, pk=request.data['user']), product=get_object_or_404(Product, pk=request.data['product']), quantity=request.data['quantity'])
+            cart_item.save()
+            response = CartItemSerializer(cart_item).data
+            status_code = status.HTTP_200_OK
+
         elif request.method == 'DELETE':
-            CartItem.objects.filter(user=pk).delete()
+            items = CartItem.objects.filter(user=request.data['user'])
+            if request.data.get('product'):
+                items = items.filter(request.data['product'])
+            items.delete()
             response = 'Cart items deleted'
-            
-        return Response(response)
+            status_code = status.HTTP_204_NO_CONTENT
+
+
+        return Response(response, status_code)
 
 class LoginView(ViewSet):
     '''A simple viewset to verify user credentials and if it exists return its information'''
